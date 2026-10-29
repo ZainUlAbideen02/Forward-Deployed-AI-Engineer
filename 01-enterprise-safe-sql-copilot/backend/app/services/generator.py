@@ -55,34 +55,115 @@ class SQLGenerator:
         """Deterministic, rule-based SQL generator for offline testing and continuous integration."""
         q = query.lower()
 
-        if any(w in q for w in ("spend", "revenue", "tier", "enterprise", "plan")):
+        # 0. Handle direct SQL input directly
+        trimmed = query.strip()
+        if trimmed.upper().startswith(("SELECT ", "WITH ", "DROP ", "DELETE ", "UPDATE ", "INSERT ", "ALTER ", "TRUNCATE ")):
+            return SQLGenerationOutput(
+                sql=trimmed,
+                explanation="Direct SQL statement passed into generator.",
+                tables_used=["organizations"] if "organization" in q else ["users"],
+                estimated_complexity="complex" if "with" in q or "join" in q else "simple",
+            )
+
+        # 1. Adversarial Injection Attack Patterns (to test downstream AST guardrail)
+        if "delete" in q:
+            return SQLGenerationOutput(
+                sql="DELETE FROM users WHERE is_active = false;",
+                explanation="Attempted deletion of inactive users (adversarial attack pattern).",
+                tables_used=["users"],
+                estimated_complexity="simple",
+            )
+        elif "drop" in q:
+            return SQLGenerationOutput(
+                sql="DROP TABLE audit_logs;",
+                explanation="Attempted dropping of audit_logs table (adversarial attack pattern).",
+                tables_used=["audit_logs"],
+                estimated_complexity="simple",
+            )
+        elif "truncate" in q:
+            return SQLGenerationOutput(
+                sql="TRUNCATE TABLE audit_logs;",
+                explanation="Attempted truncation of audit_logs table (adversarial attack pattern).",
+                tables_used=["audit_logs"],
+                estimated_complexity="simple",
+            )
+        elif "alter" in q:
+            return SQLGenerationOutput(
+                sql="ALTER TABLE users ADD COLUMN is_admin BOOLEAN;",
+                explanation="Attempted DDL schema alteration (adversarial attack pattern).",
+                tables_used=["users"],
+                estimated_complexity="simple",
+            )
+        elif "update" in q and not any(w in q for w in ("expir", "recent", "latest", "spend", "rate")):
+            return SQLGenerationOutput(
+                sql="UPDATE organizations SET monthly_spend = 0;",
+                explanation="Attempted bulk update of organization spend (adversarial attack pattern).",
+                tables_used=["organizations"],
+                estimated_complexity="simple",
+            )
+        elif "piggyback" in q:
+            return SQLGenerationOutput(
+                sql="SELECT * FROM users; DROP TABLE audit_logs;",
+                explanation="Attempted multi-statement piggybacked injection.",
+                tables_used=["users", "audit_logs"],
+                estimated_complexity="medium",
+            )
+        elif "comment injection" in q:
+            return SQLGenerationOutput(
+                sql="SELECT * FROM users WHERE id = 1; -- DROP TABLE users;",
+                explanation="Attempted comment injection delimiter attack.",
+                tables_used=["users"],
+                estimated_complexity="medium",
+            )
+        elif "hidden delete" in q or "cte delete" in q:
+            return SQLGenerationOutput(
+                sql="WITH deleted AS (DELETE FROM users RETURNING id) SELECT * FROM deleted;",
+                explanation="Attempted nested DML inside CTE construct.",
+                tables_used=["users"],
+                estimated_complexity="complex",
+            )
+
+        # 2. Business Analytics & Reporting Patterns
+        if any(w in q for w in ("window", "rank", "partition", "running")):
+            return SQLGenerationOutput(
+                sql=(
+                    "SELECT id, name, plan_tier, monthly_spend, "
+                    "RANK() OVER (PARTITION BY plan_tier ORDER BY monthly_spend DESC) as rank_in_tier "
+                    "FROM organizations "
+                    "ORDER BY plan_tier, rank_in_tier;"
+                ),
+                explanation="Computes spend ranking of organizations partitioned by subscription tier using window functions.",
+                tables_used=["organizations"],
+                estimated_complexity="complex",
+            )
+        elif any(w in q for w in ("spend", "revenue", "tier", "enterprise", "mrr", "moll")):
             return SQLGenerationOutput(
                 sql="SELECT name, plan_tier, monthly_spend FROM organizations WHERE plan_tier = 'enterprise' ORDER BY monthly_spend DESC LIMIT 10;",
                 explanation="Filters organizations for enterprise plan tier and ranks them by monthly spend.",
                 tables_used=["organizations"],
                 estimated_complexity="simple",
             )
-        elif any(w in q for w in ("user", "login", "member", "active")):
+        elif any(w in q for w in ("user", "login", "member", "active", "rbac", "role")):
             return SQLGenerationOutput(
-                sql="SELECT full_name, email, role, last_login FROM users WHERE is_active = true ORDER BY last_login DESC NULLS LAST LIMIT 20;",
-                explanation="Retrieves all active users with their assigned role and latest login timestamp.",
+                sql="SELECT role, COUNT(id) AS total_users, COUNT(CASE WHEN is_active THEN 1 END) AS active_users FROM users GROUP BY role ORDER BY total_users DESC;",
+                explanation="Aggregates user counts across RBAC roles with active user status breakdowns.",
                 tables_used=["users"],
-                estimated_complexity="simple",
+                estimated_complexity="medium",
             )
-        elif any(w in q for w in ("sub", "subscription", "seat", "quota")):
+        elif any(w in q for w in ("sub", "subscription", "seat", "quota", "expir")):
             return SQLGenerationOutput(
                 sql=(
-                    "SELECT o.name AS organization, s.status, s.seats_purchased, s.current_period_end "
+                    "SELECT o.name AS organization, o.plan_tier, s.status, s.seats_purchased, s.current_period_end "
                     "FROM subscriptions s "
                     "JOIN organizations o ON s.org_id = o.id "
                     "WHERE s.status = 'active' "
-                    "ORDER BY s.seats_purchased DESC LIMIT 15;"
+                    "ORDER BY s.current_period_end ASC LIMIT 15;"
                 ),
-                explanation="Joins active subscriptions with their organization names to analyze seat consumption.",
+                explanation="Joins active subscriptions with organization details sorted by upcoming expiration dates.",
                 tables_used=["subscriptions", "organizations"],
                 estimated_complexity="medium",
             )
-        elif any(w in q for w in ("audit", "log", "security", "ip")):
+        elif any(w in q for w in ("audit", "log", "security", "ip", "action")):
             return SQLGenerationOutput(
                 sql=(
                     "SELECT u.email, a.action, a.timestamp, a.ip_address "
