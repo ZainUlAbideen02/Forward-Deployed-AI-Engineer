@@ -23,18 +23,27 @@ class Settings(BaseSettings):
     POSTGRES_ADMIN_USER: str = "postgres"
     POSTGRES_ADMIN_PASSWORD: str = "postgres_password"
 
+    # Database Pool Settings
+    DB_POOL_MIN_SIZE: int = 2
+    DB_POOL_MAX_SIZE: int = 10
+    DB_POOL_TIMEOUT: float = 10.0
+
     # Optional explicit connection URLs (e.g. for external DB instances)
     DATABASE_URL: str | None = None
 
-    # LLM Settings
+    # LLM Settings (OpenAI / Groq / Compatible endpoint)
     LLM_API_KEY: str = ""
-    LLM_MODEL: str = "gemini-2.5-pro"
-    LLM_PROVIDER: str = "google"
+    LLM_MODEL_NAME: str = "gpt-4o-mini"
+    LLM_MODEL: str = "gpt-4o-mini"
+    LLM_BASE_URL: str = "https://api.openai.com/v1"
+    LLM_TEMPERATURE: float = 0.0
 
     # Security & Operation Timeouts
     QUERY_TIMEOUT_SECONDS: int = 30
+    STATEMENT_TIMEOUT_MS: int = 2500
     REQUEST_TIMEOUT_SECONDS: int = 60
     MAX_ROWS_LIMIT: int = 1000
+    SCHEMA_CACHE_TTL_SECONDS: int = 600  # 10 minutes
 
     @computed_field
     @property
@@ -56,6 +65,10 @@ class Settings(BaseSettings):
             f"{self.POSTGRES_HOST}:{self.POSTGRES_PORT}/{self.POSTGRES_DB}"
         )
 
+    @property
+    def effective_model_name(self) -> str:
+        """Return the configured model name."""
+        return self.LLM_MODEL_NAME or self.LLM_MODEL or "gpt-4o-mini"
+
 
 settings = Settings()
-
