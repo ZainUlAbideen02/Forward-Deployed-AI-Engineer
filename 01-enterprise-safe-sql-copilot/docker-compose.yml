@@ -17,7 +17,54 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+    networks:
+      - safe-sql-network
+
+  safe-sql-backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: safe-sql-backend
+    restart: unless-stopped
+    environment:
+      POSTGRES_HOST: safe-sql-postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_DB: enterprise_db
+      POSTGRES_USER: readonly_analyst
+      POSTGRES_PASSWORD: readonly_analyst_password
+      POSTGRES_ADMIN_USER: postgres
+      POSTGRES_ADMIN_PASSWORD: postgres_password
+      LLM_API_KEY: ${LLM_API_KEY:-mock}
+      LLM_MODEL_NAME: ${LLM_MODEL_NAME:-gpt-4o-mini}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://api.openai.com/v1}
+      ENVIRONMENT: production
+    ports:
+      - "8000:8000"
+    depends_on:
+      safe-sql-postgres:
+        condition: service_healthy
+    networks:
+      - safe-sql-network
+
+  safe-sql-frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: safe-sql-frontend
+    restart: unless-stopped
+    environment:
+      NEXT_PUBLIC_API_URL: http://localhost:8000/api/v1
+      NEXT_PUBLIC_BACKEND_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - safe-sql-backend
+    networks:
+      - safe-sql-network
 
 volumes:
   postgres_data:
 
+networks:
+  safe-sql-network:
+    driver: bridge
