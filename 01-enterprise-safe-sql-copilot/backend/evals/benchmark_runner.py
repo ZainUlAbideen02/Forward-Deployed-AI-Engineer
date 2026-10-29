@@ -309,3 +309,4 @@ def generate_markdown_report(summary: dict[str, Any], output_path: Path) -> None
 
 if __name__ == "__main__":
     asyncio.run(run_benchmark())
+

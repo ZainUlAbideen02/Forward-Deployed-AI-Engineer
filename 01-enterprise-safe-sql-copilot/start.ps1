@@ -110,3 +110,4 @@ if ($healthy) {
     Write-Host "    docker compose ps" -ForegroundColor Yellow
     Write-Host "    docker compose logs" -ForegroundColor Yellow
 }
+

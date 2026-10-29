@@ -8,7 +8,6 @@ import { SQLViewer } from "@/components/SQLViewer";
 import { ResultsVisualizer } from "@/components/ResultsVisualizer";
 import { TelemetryWaterfall } from "@/components/TelemetryWaterfall";
 import { CopilotResponse } from "@/types";
-import { Shield, Database, Lock, Server, Sparkles, Terminal } from "lucide-react";
 
 export default function DashboardPage() {
   const [copilotResponse, setCopilotResponse] = useState<CopilotResponse | null>(null);
@@ -36,7 +35,7 @@ export default function DashboardPage() {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(
-          errorData.detail || `Server responded with status ${response.status} (${response.statusText})`
+          errorData.detail || `Server status ${response.status} (${response.statusText})`
         );
       }
 
@@ -46,7 +45,7 @@ export default function DashboardPage() {
       console.error("Copilot query execution failed:", err);
       setErrorMessage(
         err.message ||
-          "Failed to connect to Copilot backend. Ensure 'safe-sql-backend' is running at " + apiBaseUrl
+          "Failed to connect to Copilot backend. Ensure 'safe-sql-backend' is online at " + apiBaseUrl
       );
     } finally {
       setIsLoading(false);
@@ -54,41 +53,36 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-100 flex flex-col">
-      {/* Cockpit Header */}
+    <div className="min-h-screen bg-white text-black flex flex-col font-sans">
+      {/* Console Top-Bar Header */}
       <Header apiBaseUrl={apiBaseUrl} />
 
-      {/* Main Content Area */}
+      {/* Main Workspace */}
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 lg:px-8 py-6 space-y-6">
-        {/* Network / Connection Alert */}
+        {/* Network / Connection Error Banner */}
         {errorMessage && (
-          <div className="p-4 rounded-2xl bg-rose-950/40 border border-rose-800/50 text-rose-200 text-xs flex items-center justify-between shadow-lg">
-            <div className="flex items-center gap-3">
-              <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400">
-                <Server className="h-4 w-4" />
-              </div>
-              <div>
-                <p className="font-semibold text-rose-300">Backend Communication Issue</p>
-                <p className="text-rose-200/80 mt-0.5">{errorMessage}</p>
-              </div>
+          <div className="border-2 border-black bg-neutral-100 p-4 font-mono text-xs flex items-center justify-between flex-wrap gap-2">
+            <div>
+              <span className="font-bold text-red-600 uppercase block mb-0.5">
+                [API COMMUNICATION HALTED]
+              </span>
+              <span className="text-black">{errorMessage}</span>
             </div>
             <button
               onClick={() => setErrorMessage(null)}
-              className="text-xs px-2.5 py-1 rounded-lg bg-rose-900/60 hover:bg-rose-800 border border-rose-700/50 text-white"
+              className="border border-black bg-white hover:bg-black hover:text-white px-2 py-1 uppercase font-bold text-[11px]"
             >
-              Dismiss
+              [DISMISS]
             </button>
           </div>
         )}
 
-        {/* Responsive Grid Layout */}
+        {/* Responsive Two-Column Layout */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-          {/* Left Column: Query Controls, Guardrail Status, Telemetry */}
+          {/* Left Column: Input, Guardrail Verdict, Telemetry */}
           <div className="lg:col-span-5 space-y-5">
-            {/* 1. Natural Language Input */}
             <QueryInput onSubmit={handleRunQuery} isLoading={isLoading} />
 
-            {/* 2. Guardrail Audit Badge */}
             {copilotResponse && (
               <GuardrailAuditBadge
                 isSafe={copilotResponse.guardrail_safe}
@@ -98,90 +92,75 @@ export default function DashboardPage() {
               />
             )}
 
-            {/* 3. Latency Waterfall */}
             {copilotResponse && (
               <TelemetryWaterfall latency={copilotResponse.latency} />
             )}
           </div>
 
-          {/* Right Column: SQL Inspector & Results / Chart */}
+          {/* Right Column: SQL Inspector & Spreadsheet / Chart Visualizer */}
           <div className="lg:col-span-7 space-y-5">
             {copilotResponse ? (
               <>
-                {/* Generated SQL Inspector */}
                 <SQLViewer generation={copilotResponse.generation} />
-
-                {/* Results Table & Dynamic Recharts Visualization */}
                 <ResultsVisualizer
                   result={copilotResponse.execution}
                   suggestedVisualization={copilotResponse.suggested_visualization}
                 />
               </>
             ) : (
-              /* Empty State / Welcome Guide */
-              <div className="bg-slate-900/60 border border-slate-800/80 rounded-2xl p-8 text-center space-y-6 shadow-xl backdrop-blur-sm">
-                <div className="h-16 w-16 mx-auto rounded-2xl bg-gradient-to-tr from-sky-500/20 to-indigo-500/20 border border-sky-500/30 flex items-center justify-center">
-                  <Sparkles className="h-8 w-8 text-sky-400" />
+              /* High-Contrast Awaiting Input State */
+              <div className="border border-black bg-white p-6 font-mono space-y-4">
+                <div className="border-b border-black pb-2.5 flex items-center justify-between">
+                  <span className="font-bold text-xs uppercase tracking-wider text-black">
+                    SYSTEM_READY // AWAITING QUERY INPUT
+                  </span>
+                  <span className="text-[10px] text-neutral-500 uppercase">
+                    POSTGRES_DIALECT: V16
+                  </span>
                 </div>
 
-                <div className="max-w-md mx-auto space-y-2">
-                  <h3 className="text-lg font-bold text-white tracking-tight">
-                    Forward Deployed AI SQL Copilot
-                  </h3>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Translate business questions into production-safe SQL with live schema catalog
-                    introspection, AST syntax enforcement, and sandboxed execution.
-                  </p>
-                </div>
-
-                {/* Architecture Highlights */}
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-left pt-2">
-                  <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                    <div className="flex items-center gap-2 text-sky-400 text-xs font-semibold mb-1">
-                      <Database className="h-4 w-4" />
-                      <span>Schema Catalog</span>
-                    </div>
-                    <p className="text-[11px] text-slate-400">
-                      Dynamic introspection of tables, foreign keys, and column constraints.
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                    <div className="flex items-center gap-2 text-emerald-400 text-xs font-semibold mb-1">
-                      <Shield className="h-4 w-4" />
-                      <span>AST Guardrail</span>
-                    </div>
-                    <p className="text-[11px] text-slate-400">
-                      sqlglot enforces strict read-only SELECT invariants and blocks injection.
-                    </p>
-                  </div>
-
-                  <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800/80">
-                    <div className="flex items-center gap-2 text-indigo-400 text-xs font-semibold mb-1">
-                      <Lock className="h-4 w-4" />
-                      <span>Least Privilege</span>
-                    </div>
-                    <p className="text-[11px] text-slate-400">
-                      Executed via <code className="text-emerald-400">readonly_analyst</code> with 2500ms timeout.
-                    </p>
-                  </div>
-                </div>
-
-                <p className="text-xs text-slate-500">
-                  Select an enterprise prompt from the left to start analyzing.
+                <p className="text-xs text-neutral-700 leading-relaxed">
+                  Enter an analytical business prompt or select an enterprise preset on the left.
+                  Queries pass through live system catalog introspection, structured AST inspection,
+                  and sandboxed transaction execution.
                 </p>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 pt-1 text-[11px]">
+                  <div className="border border-black bg-neutral-50 p-3">
+                    <span className="font-bold block uppercase mb-1">[01_CATALOG]</span>
+                    <span className="text-neutral-600">
+                      information_schema introspection with 10-minute cache TTL.
+                    </span>
+                  </div>
+                  <div className="border border-black bg-neutral-50 p-3">
+                    <span className="font-bold block uppercase mb-1">[02_GUARDRAIL]</span>
+                    <span className="text-neutral-600">
+                      sqlglot AST inspection blocks DDL, DML, and injection delimiters.
+                    </span>
+                  </div>
+                  <div className="border border-black bg-neutral-50 p-3">
+                    <span className="font-bold block uppercase mb-1">[03_SANDBOX]</span>
+                    <span className="text-neutral-600">
+                      Executed under readonly_analyst with 2500ms statement timeout.
+                    </span>
+                  </div>
+                </div>
+
+                <div className="pt-2 text-[10px] text-neutral-500 uppercase border-t border-neutral-200">
+                  DEFENSIVE ARCHITECTURE: ZERO WRITE CAPABILITIES EXPOSED TO MODEL OUTPUT.
+                </div>
               </div>
             )}
           </div>
         </div>
       </main>
 
-      {/* Footer */}
-      <footer className="border-t border-slate-800/80 bg-[#070b14] py-4 text-center text-xs text-slate-500">
+      {/* Engineering Footer */}
+      <footer className="border-t border-black bg-white py-3 text-center text-xs font-mono text-black">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span>Enterprise Safe SQL Copilot • Production Reference Implementation</span>
-          <span className="font-mono text-[11px] text-slate-400">
-            PostgreSQL 16 • FastAPI • Next.js 14 • sqlglot • Recharts
+          <span>SAFE-SQL GATEWAY // PRODUCTION ARCHITECTURE</span>
+          <span className="text-neutral-500 text-[11px]">
+            POSTGRESQL 16 • FASTAPI • NEXT.JS 14 • SQLGLOT
           </span>
         </div>
       </footer>

@@ -1,7 +1,6 @@
 "use client";
 
 import React from "react";
-import { ShieldCheck, ShieldAlert, CheckCircle2, XCircle, AlertTriangle, Lock } from "lucide-react";
 
 interface GuardrailAuditBadgeProps {
   isSafe: boolean;
@@ -18,53 +17,42 @@ export const GuardrailAuditBadge: React.FC<GuardrailAuditBadgeProps> = ({
 }) => {
   if (isSafe) {
     return (
-      <div className="rounded-2xl border border-emerald-500/30 bg-emerald-950/20 p-4 shadow-lg shadow-emerald-950/10 backdrop-blur-sm transition-all">
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2 rounded-xl bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h3 className="text-sm font-semibold text-emerald-400">
-                  AST Security Guardrail Verified
-                </h3>
-                <span className="px-2 py-0.5 text-[11px] font-bold rounded-md bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                  VERDICT: SAFE
-                </span>
-              </div>
-              <p className="text-xs text-slate-300 mt-0.5">
-                Query satisfies least-privilege read-only invariants. All AST security rules passed.
-              </p>
-            </div>
+      <div className="border border-black bg-white p-4 rounded-none">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b border-black pb-2.5 mb-3">
+          <div className="font-mono text-xs font-bold text-black uppercase tracking-wider">
+            [AST AUDIT: PASSED // SAFE]
+          </div>
+          <span className="font-mono text-[10px] text-neutral-500 uppercase">
+            STATUS: 100% READ_ONLY
+          </span>
+        </div>
+
+        {/* Tabular Audit Invariants */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 font-mono text-xs">
+          <div className="border border-neutral-200 bg-neutral-50 p-2">
+            <span className="text-[10px] text-neutral-500 block uppercase">ROOT EXPR</span>
+            <span className="font-bold text-black">sqlglot.exp.Select</span>
+          </div>
+          <div className="border border-neutral-200 bg-neutral-50 p-2">
+            <span className="text-[10px] text-neutral-500 block uppercase">MULTI-STATEMENT</span>
+            <span className="font-bold text-black">PASSED (SINGLE)</span>
+          </div>
+          <div className="border border-neutral-200 bg-neutral-50 p-2">
+            <span className="text-[10px] text-neutral-500 block uppercase">DML/DDL SCAN</span>
+            <span className="font-bold text-black">BLOCKED (ZERO WRITE)</span>
           </div>
         </div>
 
-        {/* Detailed audit checks */}
-        <div className="mt-3 pt-3 border-t border-emerald-500/10 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-          <div className="flex items-center gap-1.5 text-slate-300 bg-slate-900/60 px-2.5 py-1.5 rounded-lg border border-emerald-500/10">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
-            <span>Root: <code className="text-emerald-400 font-mono">sqlglot.exp.Select</code></span>
-          </div>
-          <div className="flex items-center gap-1.5 text-slate-300 bg-slate-900/60 px-2.5 py-1.5 rounded-lg border border-emerald-500/10">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
-            <span>Multi-Statement: <span className="text-emerald-400 font-medium">PASSED</span></span>
-          </div>
-          <div className="flex items-center gap-1.5 text-slate-300 bg-slate-900/60 px-2.5 py-1.5 rounded-lg border border-emerald-500/10">
-            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-400 flex-shrink-0" />
-            <span>DML/DDL Tree Scan: <span className="text-emerald-400 font-medium">CLEAN</span></span>
-          </div>
-        </div>
-
-        {/* Tables Used */}
+        {/* Audited Tables */}
         {tablesUsed.length > 0 && (
-          <div className="mt-2.5 flex items-center gap-1.5 text-xs text-slate-400">
-            <span className="font-medium text-slate-300">Audited Tables:</span>
+          <div className="mt-3 pt-2.5 border-t border-neutral-200 flex items-center gap-2 font-mono text-xs">
+            <span className="text-neutral-500 text-[10px] uppercase font-bold">AUDITED TABLES:</span>
             <div className="flex flex-wrap gap-1">
-              {tablesUsed.map((tbl, i) => (
+              {tablesUsed.map((tbl, idx) => (
                 <span
-                  key={i}
-                  className="px-2 py-0.5 rounded bg-slate-800 text-slate-300 border border-slate-700 text-[11px] font-mono"
+                  key={idx}
+                  className="border border-black bg-white px-1.5 py-0.5 text-[11px] font-bold"
                 >
                   {tbl}
                 </span>
@@ -76,45 +64,35 @@ export const GuardrailAuditBadge: React.FC<GuardrailAuditBadgeProps> = ({
     );
   }
 
-  // REJECTED STATE
+  // REJECTED STATE: High-contrast solid black container with crisp white typography
   return (
-    <div className="rounded-2xl border border-rose-500/40 bg-rose-950/30 p-4 shadow-xl shadow-rose-950/20 backdrop-blur-sm transition-all animate-shake">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2 rounded-xl bg-rose-500/20 text-rose-400 border border-rose-500/30">
-            <ShieldAlert className="h-5 w-5" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h3 className="text-sm font-bold text-rose-400">
-                Security Violation: AST Guardrail Intercepted
-              </h3>
-              <span className="px-2 py-0.5 text-[11px] font-bold rounded-md bg-rose-500/20 text-rose-300 border border-rose-500/40">
-                VERDICT: REJECTED
-              </span>
-            </div>
-            <p className="text-xs text-rose-200/90 mt-0.5">
-              Query aborted prior to database execution. The AST parser detected non-compliant or destructive syntax.
-            </p>
-          </div>
+    <div className="border-2 border-black bg-black text-white p-4 rounded-none">
+      {/* Header */}
+      <div className="border-b border-neutral-800 pb-2.5 mb-3 flex items-center justify-between">
+        <div className="font-mono text-xs font-bold text-white uppercase tracking-wider">
+          [SECURITY INTERCEPTION: QUERY ABORTED]
+        </div>
+        <span className="font-mono text-[10px] bg-white text-black px-1.5 py-0.5 font-bold uppercase">
+          BLOCKED
+        </span>
+      </div>
+
+      <p className="font-mono text-[11px] text-neutral-300 mb-3 uppercase">
+        AST verification failure. Execution terminated in-memory prior to database execution.
+      </p>
+
+      {/* Violation Details */}
+      <div className="border border-neutral-700 bg-neutral-900 p-3 font-mono text-xs text-neutral-100">
+        <span className="text-[10px] text-neutral-400 uppercase font-bold block mb-1">
+          INTERCEPTION REASON:
+        </span>
+        <div className="text-red-400 font-bold leading-relaxed break-words">
+          {reason || "Forbidden AST statement type detected."}
         </div>
       </div>
 
-      {/* Violation Reason Card */}
-      <div className="mt-3 p-3 rounded-xl bg-rose-950/50 border border-rose-800/40 text-xs">
-        <div className="flex items-center gap-2 text-rose-300 font-semibold mb-1">
-          <AlertTriangle className="h-4 w-4 text-rose-400 flex-shrink-0" />
-          <span>Interception Reason:</span>
-        </div>
-        <p className="text-rose-200/90 font-mono text-[11px] leading-relaxed break-words bg-slate-950/60 p-2 rounded border border-rose-900/50">
-          {reason || "Potentially malicious or destructive SQL construct flagged by AST inspection."}
-        </p>
-      </div>
-
-      {/* Protection guarantees */}
-      <div className="mt-2.5 flex items-center gap-2 text-[11px] text-slate-400">
-        <Lock className="h-3.5 w-3.5 text-emerald-400" />
-        <span>Database state preserved. Zero write operations reached PostgreSQL.</span>
+      <div className="mt-2.5 pt-2 border-t border-neutral-800 font-mono text-[10px] text-neutral-400 uppercase">
+        GUARANTEE: ZERO WRITE REQUESTS REACHED POSTGRESQL.
       </div>
     </div>
   );

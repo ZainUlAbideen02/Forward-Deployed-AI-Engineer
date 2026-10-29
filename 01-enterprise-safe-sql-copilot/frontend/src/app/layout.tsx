@@ -2,8 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: "Enterprise Safe SQL Copilot | Forward Deployed AI",
-  description: "AST-governed, least-privilege SQL Copilot with dynamic schema introspection & sandboxed execution",
+  title: "SAFE-SQL // ENTERPRISE GATEWAY",
+  description: "AST-governed, least-privilege SQL gateway with live schema catalog introspection & sandboxed execution",
 };
 
 export default function RootLayout({
@@ -12,8 +12,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="dark">
-      <body className="bg-[#090d16] text-slate-100 antialiased selection:bg-sky-500/30 selection:text-sky-200">
+    <html lang="en">
+      <body className="bg-white text-black font-sans antialiased">
         {children}
       </body>
     </html>

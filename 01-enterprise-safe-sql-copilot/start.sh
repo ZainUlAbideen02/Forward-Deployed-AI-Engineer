@@ -104,3 +104,4 @@ else
     echo -e "    docker compose ps"
     echo -e "    docker compose logs"
 fi
+
